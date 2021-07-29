@@ -2,6 +2,7 @@ import 'dart:ffi';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'dart:math';
 
 void main() {
   runApp(MaterialApp(
@@ -25,10 +26,14 @@ class _PinturaState extends State<Pintura> {
     return Scaffold(
       body: GestureDetector(
           onPanStart: (detalhes) {
-            print(detalhes.localPosition);
+            //print(detalhes.localPosition);
             setState(() {
               if (_offsets.length < 4) {
-                _offsets.add(detalhes.localPosition);
+                _offsets.add(Offset(
+                    detalhes.globalPosition.dx -
+                        MediaQuery.of(context).size.width / 2,
+                    MediaQuery.of(context).size.height / 2 -
+                        detalhes.globalPosition.dy));
                 print(_offsets.length);
               }
             });
@@ -37,7 +42,11 @@ class _PinturaState extends State<Pintura> {
             print(detalhes.globalPosition);
             setState(() {
               if (_offsets.length <= 4 && ultimoPonto == false) {
-                _offsets[_offsets.length - 1] = detalhes.globalPosition;
+                _offsets[_offsets.length - 1] = Offset(
+                    detalhes.globalPosition.dx -
+                        MediaQuery.of(context).size.width / 2,
+                    MediaQuery.of(context).size.height / 2 -
+                        detalhes.globalPosition.dy);
               }
             });
           },
@@ -109,9 +118,19 @@ class MyPaint extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     if (offset.length >= 2) {
-      canvas.drawLine(offset[0], offset[1], paintLinha);
+      canvas.drawLine(
+          Offset(offset[0].dx + tamanhTela.width / 2,
+              tamanhTela.height / 2 - offset[0].dy),
+          Offset(offset[1].dx + tamanhTela.width / 2,
+              tamanhTela.height / 2 - offset[1].dy),
+          paintLinha);
       if (offset.length > 3) {
-        canvas.drawLine(offset[2], offset[3], paintLinha);
+        canvas.drawLine(
+            Offset(offset[2].dx + tamanhTela.width / 2,
+                tamanhTela.height / 2 - offset[2].dy),
+            Offset(offset[3].dx + tamanhTela.width / 2,
+                tamanhTela.height / 2 - offset[3].dy),
+            paintLinha);
         if (offsetInterpolacoes.length < 4) {
           offsetInterpolacoes.add(interpolacaoV1()[0]);
           offsetInterpolacoes.add(interpolacaoV1()[1]);
@@ -122,10 +141,41 @@ class MyPaint extends CustomPainter {
       }
     }
     if (offset.length > 0 && offset.length <= 4) {
-      canvas.drawPoints(pointMode, offset, paintPonto);
+      List<Offset> pontos = <Offset>[];
+      for (var item in offset) {
+        pontos.add(Offset(
+            item.dx + tamanhTela.width / 2, tamanhTela.height / 2 - item.dy));
+      }
+      canvas.drawPoints(pointMode, pontos, paintPonto);
       if (offset.length > 3) {
+        var plano1 = interpolacaoV1()[0];
+        var perp1 = interpolacaoV1()[1];
+        var plano2 = interpolacaoV2()[0];
+        var perp2 = interpolacaoV2()[1];
+        var intersec = intersect2D(plano1, perp1, plano2, perp2);
         canvas.drawLine(
-            offsetInterpolacoes[0], offsetInterpolacoes[1], paintLinha);
+            Offset(tamanhTela.width / 2 + offsetInterpolacoes[0].dx,
+                tamanhTela.height / 2 - offsetInterpolacoes[0].dy),
+            Offset(offsetInterpolacoes[1].dx + tamanhTela.width / 2,
+                tamanhTela.height / 2 - offsetInterpolacoes[1].dy),
+            paintLinha);
+        canvas.drawLine(
+            Offset(tamanhTela.width / 2 + offsetInterpolacoes[2].dx,
+                tamanhTela.height / 2 - offsetInterpolacoes[2].dy),
+            Offset(offsetInterpolacoes[3].dx + tamanhTela.width / 2,
+                tamanhTela.height / 2 - offsetInterpolacoes[3].dy),
+            paintLinha);
+        var produtoEscalar =
+            ((perp1.dx - intersec.dx) * (plano2.dx - intersec.dx) +
+                ((perp1.dy - intersec.dy) * (plano2.dy - intersec.dy)));
+        var modulos = sqrt(pow(perp1.dx - intersec.dx, 2) +
+                pow(perp1.dy - intersec.dy, 2)) *
+            sqrt(pow(plano2.dx - intersec.dx, 2) +
+                pow(plano2.dy - intersec.dy, 2));
+        var escalarDivModulo = produtoEscalar / modulos;
+        var angulo = acos(escalarDivModulo);
+        angulo = (180 * angulo) / pi;
+        print(angulo.toStringAsFixed(2) + " Graus");
       }
     }
   }
@@ -152,10 +202,35 @@ class MyPaint extends CustomPainter {
     if (offset.length > 3) {
       posx = offset[2].dx + (0.5 * (offset[3].dx - offset[2].dx));
       posy = offset[2].dy + (0.5 * (offset[3].dy - offset[2].dy));
-      oX = -(offset[3].dy - offset[2].dy);
-      oY = (offset[3].dx - offset[2].dx);
+      oX = (offset[3].dy - offset[2].dy);
+      oY = -(offset[3].dx - offset[2].dx);
     }
     return [Offset(posx, posy), Offset(oX, oY)];
+  }
+
+  Offset intersect2D(Offset inicioReta1, Offset finalReta1, Offset inicioReta2,
+      Offset finalReta2) {
+    double det;
+    double s;
+    double t;
+    Offset Inters = Offset(0, 0);
+
+    det = (finalReta2.dx - inicioReta2.dx) * (finalReta1.dy - inicioReta1.dy) -
+        (finalReta2.dy - inicioReta2.dy) * (finalReta1.dx - inicioReta1.dx);
+
+    s = ((finalReta2.dx - inicioReta2.dx) * (inicioReta2.dy - inicioReta1.dy) -
+            (finalReta2.dy - inicioReta2.dy) *
+                (inicioReta2.dx - inicioReta1.dx)) /
+        det;
+    t = ((finalReta1.dx - inicioReta1.dx) * (inicioReta2.dy - inicioReta1.dy) -
+            (finalReta1.dy - inicioReta1.dy) *
+                (inicioReta2.dx - inicioReta1.dx)) /
+        det;
+
+    Inters = Offset(inicioReta1.dx + (finalReta1.dx - inicioReta1.dx) * s,
+        inicioReta1.dy + (finalReta1.dy - inicioReta1.dy) * s);
+
+    return Inters;
   }
 
   @override
