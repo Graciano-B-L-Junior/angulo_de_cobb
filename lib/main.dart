@@ -6,6 +6,7 @@ import 'dart:math';
 
 void main() {
   runApp(MaterialApp(
+    debugShowCheckedModeBanner: false,
     home: Pintura(),
   ));
 }
@@ -25,70 +26,88 @@ class _PinturaState extends State<Pintura> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: GestureDetector(
-          onPanStart: (detalhes) {
-            //print(detalhes.localPosition);
-            setState(() {
-              if (_offsets.length < 4) {
-                _offsets.add(Offset(
-                    detalhes.globalPosition.dx -
-                        MediaQuery.of(context).size.width / 2,
-                    MediaQuery.of(context).size.height / 2 -
-                        detalhes.globalPosition.dy));
-                print(_offsets.length);
-              }
-            });
-          },
-          onPanUpdate: (detalhes) {
-            print(detalhes.globalPosition);
-            setState(() {
-              if (_offsets.length <= 4 && ultimoPonto == false) {
-                _offsets[_offsets.length - 1] = Offset(
-                    detalhes.globalPosition.dx -
-                        MediaQuery.of(context).size.width / 2,
-                    MediaQuery.of(context).size.height / 2 -
-                        detalhes.globalPosition.dy);
-              }
-            });
-          },
-          onPanEnd: (detalhes) {
-            setState(() {
-              if (_offsets.length == 4) {
-                ultimoPonto = true;
-              }
-            });
-          },
-          /*
+        onPanStart: (detalhes) {
+          //print(detalhes.localPosition);
+          setState(() {
+            if (_offsets.length < 4) {
+              _offsets.add(Offset(
+                  detalhes.globalPosition.dx -
+                      MediaQuery.of(context).size.width / 2,
+                  MediaQuery.of(context).size.height / 2 -
+                      detalhes.globalPosition.dy));
+              print(_offsets.length);
+            }
+          });
+        },
+        onPanUpdate: (detalhes) {
+          print(detalhes.globalPosition);
+          setState(() {
+            if (_offsets.length <= 4 && ultimoPonto == false) {
+              _offsets[_offsets.length - 1] = Offset(
+                  detalhes.globalPosition.dx -
+                      MediaQuery.of(context).size.width / 2,
+                  MediaQuery.of(context).size.height / 2 -
+                      detalhes.globalPosition.dy);
+            }
+          });
+        },
+        onPanEnd: (detalhes) {
+          setState(() {
+            if (_offsets.length == 4) {
+              ultimoPonto = true;
+            }
+          });
+        },
+        /*
         ,
         onPanEnd: (detalhes) {
           print(detalhes);
           _offsets.add(null);
         },
         */
-          child: Center(
-            child: Container(
-              height: MediaQuery.of(context).size.height,
-              width: MediaQuery.of(context).size.width,
-              color: Colors.teal,
-              child: CustomPaint(
-                painter: MyPaint(_offsets, _offsetsInterpolacao,
-                    MediaQuery.of(context).size),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: <Widget>[
-                    ElevatedButton(
+        child: Container(
+            height: MediaQuery.of(context).size.height,
+            width: MediaQuery.of(context).size.width,
+            color: Colors.teal,
+            child: Stack(
+              fit: StackFit.expand,
+              children: <Widget>[
+                Image.asset(
+                  'assets/escoliose.jpg',
+                  width: MediaQuery.of(context).size.width,
+                  height: MediaQuery.of(context).size.height,
+                  fit: BoxFit.cover,
+                ),
+                CustomPaint(
+                  painter: MyPaint(_offsets, _offsetsInterpolacao,
+                      MediaQuery.of(context).size),
+                ),
+                Positioned(
+                    bottom: 0,
+                    child: ElevatedButton(
                         onPressed: () {
                           setState(() {
                             ultimoPonto = false;
                             _offsets.clear();
                             _offsetsInterpolacao.clear();
+                            MyPaint.resultado = 0;
                           });
                         },
-                        child: Text("Redesenhar"))
-                  ],
-                ),
-              ),
-            ),
-          )),
+                        child: Text("Redesenhar"))),
+                Positioned(
+                    top: 70,
+                    left: 20,
+                    child: MyPaint.resultado != 0
+                        ? Text(
+                            "Angulo: ${MyPaint.resultado.toStringAsFixed(2)} graus",
+                            style: TextStyle(color: Colors.white, fontSize: 20))
+                        : Text(
+                            "Aguardando cálculo",
+                            style: TextStyle(color: Colors.white, fontSize: 20),
+                          ))
+              ],
+            )),
+      ),
     );
   }
 }
@@ -97,6 +116,7 @@ class MyPaint extends CustomPainter {
   final List<Offset> offset;
   final List<Offset> offsetInterpolacoes;
   final Size tamanhTela;
+  static double resultado = 0;
   bool limiteInterpolacao = false;
 
   MyPaint(this.offset, this.offsetInterpolacoes, this.tamanhTela);
@@ -175,6 +195,7 @@ class MyPaint extends CustomPainter {
         var escalarDivModulo = produtoEscalar / modulos;
         var angulo = acos(escalarDivModulo);
         angulo = (180 * angulo) / pi;
+        resultado = angulo;
         print(angulo.toStringAsFixed(2) + " Graus");
       }
     }
