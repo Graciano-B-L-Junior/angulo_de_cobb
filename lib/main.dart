@@ -26,8 +26,8 @@ class _PinturaState extends State<Pintura> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: GestureDetector(
+        // essa função pega a posição atual e adiciona na lista "vetores"
         onPanStart: (detalhes) {
-          //print(detalhes.localPosition);
           setState(() {
             if (_offsets.length < 4) {
               _offsets.add(Offset(
@@ -35,10 +35,10 @@ class _PinturaState extends State<Pintura> {
                       MediaQuery.of(context).size.width / 2,
                   MediaQuery.of(context).size.height / 2 -
                       detalhes.globalPosition.dy));
-              print(_offsets.length);
             }
           });
         },
+        //essa função atualiza a posição atual do ponto quando arrasta o dedo na tela
         onPanUpdate: (detalhes) {
           print(detalhes.globalPosition);
           setState(() {
@@ -51,6 +51,7 @@ class _PinturaState extends State<Pintura> {
             }
           });
         },
+        //se for o ultimo ponto, então quando soltar o dedo não pode mais alterar a posição
         onPanEnd: (detalhes) {
           setState(() {
             if (_offsets.length == 4) {
@@ -78,6 +79,7 @@ class _PinturaState extends State<Pintura> {
                   height: MediaQuery.of(context).size.height,
                   fit: BoxFit.cover,
                 ),
+                //Esse widget e que serve para criar os desenhos, mais detalhes na classe Mypaint que criei embaixo
                 CustomPaint(
                   painter: MyPaint(_offsets, _offsetsInterpolacao,
                       MediaQuery.of(context).size),
@@ -112,6 +114,7 @@ class _PinturaState extends State<Pintura> {
   }
 }
 
+//classe que serve para desenhar a tela
 class MyPaint extends CustomPainter {
   final List<Offset> offset;
   final List<Offset> offsetInterpolacoes;
@@ -229,6 +232,7 @@ class MyPaint extends CustomPainter {
     return [Offset(posx, posy), Offset(oX, oY)];
   }
 
+  //função que faz o calculo de intersecção entre as duas retas
   Offset intersect2D(Offset inicioReta1, Offset finalReta1, Offset inicioReta2,
       Offset finalReta2) {
     double det;
